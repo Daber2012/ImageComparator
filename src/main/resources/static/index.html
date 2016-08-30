@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+
+    <script src="https://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.9.1.min.js" type="text/javascript"></script>
+    
+    <script>
+    	$(document).ready(function(){
+    	console.log('dddddddddddddddddddddddddddddddd')
+			$('.send').on('click', function () {
+			
+				var data = new FormData();
+				$.each($('input.file'), function(i, file) {
+				console.log(file.files[0])
+				   data.append('f'+i, file.files[0]);
+				});
+				console.log(data)
+				
+				var request = new XMLHttpRequest();
+				request.open("POST", "http://localhost:8080/compare");
+				request.onreadystatechange = function() {
+				        if (request.readyState == 4 && request.status == 200) {
+				        console.log(request.responseText)
+				            document.getElementById("img").src = "data:image/png;base64," + request.responseText;
+				        }
+				    };
+				request.send(data);
+				
+			})
+			
+    	
+    	})
+	    
+    </script>
+</head>
+<body>
+<!-- method="post" action="compare" enctype="multipart/form-data" -->
+    <div id="main-form">
+        <label>First image</label>
+        <input type="file" class="file"/><br>
+        <label>Second image</label>
+        <input type="file" class="file"/><br>
+        <button class="send">Send</button>
+    </div>
+    
+    <img id="img" src="" />
+    
+</body>
+</html>
