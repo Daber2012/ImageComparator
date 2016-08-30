@@ -17,12 +17,9 @@ import com.image.comare.Comparator;
 @Controller
 public class MainController {
 
-	@ResponseBody
+    @ResponseBody
     @RequestMapping(value = "compare", method = RequestMethod.POST)
     public byte[] compare(@RequestParam("f0") MultipartFile fImg, @RequestParam(("f1")) MultipartFile sImg) {
-        
-        //System.out.println(fImg.getOriginalFilename());
-        
         return Base64.getEncoder().encode(new Comparator().compare(fImg, sImg));
     }
 }
