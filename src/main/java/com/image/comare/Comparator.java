@@ -1,19 +1,16 @@
 package com.image.comare;
 
-
 import javax.imageio.ImageIO;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.assertj.core.util.Lists;
 import org.springframework.web.multipart.MultipartFile;
-
-import com.image.comare.objects.ChangesPoly;
 import com.image.comare.objects.Point;
-
-import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class Comparator {
 
@@ -26,12 +23,41 @@ public class Comparator {
             System.err.println("Different sizes");
             return null;
         }
-        BufferedImage outImg = new BufferedImage(width1, height1, BufferedImage.TYPE_INT_RGB);
-        List<Point> changePoints = new ArrayList<>();
-        int diff;
+        
+        int centerX = width1 % 2;
+        int centerY = (int)height1/2;
+        System.out.println("x" + width1 + " center " + centerX);
+        System.out.println("y" + height1 + " center " + centerY);
+        
+        CopyOnWriteArrayList<Point> changePoints = new CopyOnWriteArrayList<>();
+        
+        //comparePoly(changePoints, img1, img2, 0,0,width1,height1);
+        
+        Thread th1 = new Thread(() -> comparePoly(changePoints, img1, img2, 0, 0, centerX, centerY));
+        Thread th2 = new Thread(() -> comparePoly(changePoints, img1, img2, centerX, 0, width1-1, centerY));
+        Thread th3 = new Thread(() -> comparePoly(changePoints, img1, img2, 0, centerY, centerX, height1-1));
+        Thread th4 = new Thread(() -> comparePoly(changePoints, img1, img2, centerX, centerY, width1-1, height1-1));
+        th1.start();th2.start();th3.start();th4.start();
+        th1.run();th2.run();th3.run();th4.run();
+        BufferedImage outImg = null;
+        while (true) {
+        	if (!th1.isAlive() && !th2.isAlive() && !th3.isAlive() && !th3.isAlive()) {
+		        outImg = ImageUtil.copyImage(img2);
+		        ImageUtil.drawChanges(new ArrayList<Point>(changePoints), outImg);
+		        break;
+        	}
+        }
+
+        
+        return outImg;
+    }
+    
+    public void comparePoly(CopyOnWriteArrayList<Point> changePoints, BufferedImage img1, BufferedImage img2, 
+                              int x1, int y1, int x2, int y2) {
+    	int diff;
         int result;
-        for (int j = 0; j < height1; j++) {
-            for (int i = 0; i < width1; i++) {
+        for (int j = x1; j <= y2; j++) {
+            for (int i = y1; i <= x2; i++) {
                 int rgb1 = img1.getRGB(i, j);
                 int rgb2 = img2.getRGB(i, j);
                 int red1 = (rgb1 >> 16) & 0xff;
@@ -48,20 +74,9 @@ public class Comparator {
                 if (result != 0) {
                     changePoints.add(new Point(i, j));
                 }
-                outImg.setRGB(i, j, rgb2);
             }
         }
-        drawChanges(changePoints, outImg);
-        return outImg;
-    }
-   
-    public void drawChanges(List<Point> changePoints, BufferedImage resImg) {
-        Graphics2D g2 = resImg.createGraphics();
-        for (ChangesPoly change : SortUtil.findChangesPoly(changePoints)) {
-            g2.setColor(Color.RED);
-            g2.drawRect(change.getX1(), change.getY1(),
-                    change.getX2() - change.getX1(), change.getY2() - change.getY1());
-        }
+    	
     }
    
     public byte[] compare(MultipartFile f1, MultipartFile f2) {
@@ -80,7 +95,6 @@ public class Comparator {
             mlpByteStream.flush();
             result = mlpByteStream.toByteArray();
             mlpByteStream.close();
-
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

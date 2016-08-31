@@ -1,14 +1,36 @@
 package com.image.comare;
 
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.awt.image.ColorModel;
+import java.awt.image.WritableRaster;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.image.comare.objects.ChangesPoly;
 import com.image.comare.objects.Point;
 
-public final class SortUtil {
+public final class ImageUtil {
 
-    private SortUtil() {}
+    private ImageUtil() {}
+    
+    public static BufferedImage copyImage(BufferedImage img) {
+        ColorModel cm = img.getColorModel();
+        boolean isAlphaPremultiplied = cm.isAlphaPremultiplied();
+        WritableRaster raster = img.copyData(null);
+        return new BufferedImage(cm, raster, isAlphaPremultiplied, null);
+    }
+   
+    public static void drawChanges(ArrayList<Point> changePoints, BufferedImage resImg) {
+        Graphics2D g2 = resImg.createGraphics();
+        for (ChangesPoly change : ImageUtil.findChangesPoly(changePoints)) {
+            g2.setColor(Color.RED);
+            g2.drawRect(change.getX1(), change.getY1(),
+                    change.getX2() - change.getX1(), change.getY2() - change.getY1());
+        }
+    }
 
     public static List<ChangesPoly> findChangesPoly(List<Point> changePoints) {
         List<List<Point>> clusters = new ArrayList<>();
